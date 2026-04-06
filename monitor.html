@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSense | Monitoring</title>
+    <!-- Use Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="monitor.css">
+    <!-- Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav>
+        <div class="nav-brand">
+            <i class="fa-solid fa-leaf"></i>
+            EcoSense
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="monitor.html" class="active">Monitoring</a>
+            <a href="predict.html">AI Prediction</a>
+        </div>
+    </nav>
+
+    <!-- Notification Area -->
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <main style="max-width: 1600px; padding: 1rem 2%;">
+        <div class="monitor-container">
+            
+            <!-- Sidebar: Monitored Cities -->
+            <aside class="glass-panel cities-list-sidebar animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="section-title">
+                    <i class="fa-solid fa-map-location-dot"></i> Monitored Cities
+                </div>
+                
+                <form id="addCityForm" class="add-city-form">
+                    <input type="text" id="newCityInput" placeholder="Add city..." required autocomplete="off">
+                    <button type="submit" class="btn btn-primary" style="padding: 0 1rem;">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </form>
+
+                <div id="citiesList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 0.5rem;">
+                    <!-- Cities will be injected here dynamically -->
+                </div>
+            </aside>
+
+            <!-- Main Content: Chart -->
+            <section class="glass-panel chart-section animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="dashboard-header" style="margin-bottom: 2rem;">
+                    <div>
+                        <h2 id="chartTitle" style="font-size: 1.8rem;">Historical AQI Trends</h2>
+                        <div class="timestamp">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span id="chartSubtitle">Select a city to view its air quality history (last 30 entries)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container" id="chartWrapper">
+                    <!-- Empty State -->
+                    <div id="emptyState" class="empty-state">
+                        <i class="fa-solid fa-city"></i>
+                        <h3>No Data Available</h3>
+                        <p>Add a city to start monitoring its air quality trends.</p>
+                    </div>
+                    
+                    <!-- Chart Canvas -->
+                    <canvas id="aqiChart" style="display: none;"></canvas>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="shared.js"></script>
+    <script src="monitor.js"></script>
+</body>
+</html>

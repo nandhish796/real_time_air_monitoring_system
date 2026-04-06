@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NM | Air Quality Dashboard</title>
+    <!-- Use Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <nav>
+        <div class="nav-brand">
+            <i class="fa-solid fa-leaf"></i>
+            NMWebs
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="monitor.html">Monitoring</a>
+        </div>
+    </nav>
+
+    <main>
+        <section class="search-section">
+            <div class="search-box glass-panel">
+                <input type="text" id="cityInput" placeholder="Search for a city..." autocomplete="off">
+                <button id="searchBtn" class="search-btn">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Notification Area -->
+        <div id="notificationContainer" class="notification-container"></div>
+
+        <div id="dashboardLoader" style="display: none; align-items: center; justify-content: center; height: 50vh;">
+            <div class="loader active" style="width: 50px; height: 50px; border-width: 5px;"></div>
+        </div>
+
+        <div class="dashboard-header glass-panel animate-fade-in" style="padding: 1.5rem; border-radius: 16px;">
+            <div>
+                <h1 class="city-title" id="cityName">Krishnagiri</h1>
+                <div class="timestamp">
+                    <i class="fa-regular fa-clock"></i>
+                    <span id="lastUpdated">Last updated: Just now</span>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="refreshBtn" class="btn btn-secondary" aria-label="Refresh Data">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
+                <button id="addToMonitorBtn" class="btn btn-primary" aria-label="Add to Monitoring">
+                    <i class="fa-solid fa-plus"></i> Add to Monitoring
+                </button>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Left Column: AQI Status -->
+            <div class="glass-panel aqi-main-card animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="section-title" style="align-self: flex-start; margin-bottom: 2rem;">
+                    <i class="fa-solid fa-wind"></i> Overall Air Quality
+                </div>
+                
+                <div class="aqi-value-container" id="aqiCircle">
+                    <div class="aqi-value" id="aqiValue">25</div>
+                    <div class="aqi-label">AQI US</div>
+                </div>
+                
+                <div class="aqi-status" id="aqiStatus">Good</div>
+                
+                <div class="health-advice glass-panel" style="padding: 1.5rem; text-align: left; background: rgba(0,0,0,0.2);">
+                    <div class="section-title" style="margin-bottom: 0.5rem; font-size: 1.1rem;">
+                        <i class="fa-solid fa-notes-medical"></i> Health Recommendation
+                    </div>
+                    <p id="healthAdvice">Air quality is considered satisfactory, and air pollution poses little or no risk.</p>
+                </div>
+            </div>
+
+            <!-- Right Column: Pollutants Details -->
+            <div class="glass-panel pollutants-container animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="section-title">
+                    <i class="fa-solid fa-vial"></i> Key Pollutants
+                </div>
+                
+                <div class="pollutants-grid">
+                    <!-- PM2.5 Card -->
+                    <div class="pollutant-card">
+                        <div class="pollutant-header">
+                            <span class="pollutant-name">PM2.5</span>
+                            <i class="fa-solid fa-smog" style="color: var(--text-muted)"></i>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <span class="pollutant-value" id="pm25Value">12</span>
+                            <span class="pollutant-unit">µg/m³</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="pm25Bar" style="width: 25%; background-color: var(--aqi-good);"></div>
+                        </div>
+                    </div>
+
+                    <!-- PM10 Card -->
+                    <div class="pollutant-card">
+                        <div class="pollutant-header">
+                            <span class="pollutant-name">PM10</span>
+                            <i class="fa-solid fa-cloud" style="color: var(--text-muted)"></i>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <span class="pollutant-value" id="pm10Value">45</span>
+                            <span class="pollutant-unit">µg/m³</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="pm10Bar" style="width: 45%; background-color: var(--aqi-good);"></div>
+                        </div>
+                    </div>
+
+                    <!-- CO Card -->
+                    <div class="pollutant-card">
+                        <div class="pollutant-header">
+                            <span class="pollutant-name">CO</span>
+                            <i class="fa-solid fa-car" style="color: var(--text-muted)"></i>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <span class="pollutant-value" id="coValue">210</span>
+                            <span class="pollutant-unit">µg/m³</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="coBar" style="width: 10%; background-color: var(--aqi-good);"></div>
+                        </div>
+                    </div>
+
+                    <!-- NO2 Card -->
+                    <div class="pollutant-card">
+                        <div class="pollutant-header">
+                            <span class="pollutant-name">NO2</span>
+                            <i class="fa-solid fa-industry" style="color: var(--text-muted)"></i>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <span class="pollutant-value" id="no2Value">15</span>
+                            <span class="pollutant-unit">µg/m³</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="no2Bar" style="width: 15%; background-color: var(--aqi-good);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="shared.js"></script>
+    <script src="home.js"></script>
+</body>
+</html>
