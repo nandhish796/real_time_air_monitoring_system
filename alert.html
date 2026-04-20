@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AQI Alert System</title>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- EmailJS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    
+    <!-- Combined CSS -->
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            
+            --good: #10b981;
+            --moderate: #eab308;
+            --unhealthy: #f97316;
+            --poor: #ef4444;
+
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #172554 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 5%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-brand i {
+            color: var(--accent);
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text-primary);
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 5%;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Grid Layout */
+        .alert-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        @media (max-width: 768px) {
+            .alert-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Control Panel */
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .control-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .control-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .control-section p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        /* Buttons and Inputs */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn {
+            background: var(--accent);
+            color: white;
+            width: 100%;
+        }
+
+        .primary-btn:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .search-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .search-group input {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-group input:focus {
+            border-color: var(--accent);
+        }
+
+        .secondary-btn {
+            background: #475569;
+            color: white;
+        }
+
+        .secondary-btn:hover {
+            background: #334155;
+        }
+
+        /* Result Panel */
+        .result-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+            height: 100%;
+            min-height: 400px;
+        }
+
+        .idle-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-secondary);
+            transition: opacity 0.4s ease;
+            width: 100%;
+        }
+
+        .idle-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .idle-state.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .result-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            display: none;
+        }
+
+        .result-card.visible {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #resultCity {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .aqi-display {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .aqi-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            font-weight: 700;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3) inset;
+            transition: background 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        #resultStatus {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .alert-info small {
+            color: var(--text-secondary);
+        }
+
+        /* Result Colors */
+        .card-green { border-top: 4px solid var(--good); }
+        .card-green .aqi-circle { background: rgba(16, 185, 129, 0.2); border: 2px solid var(--good); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); color: var(--good); }
+        .card-green #resultStatus { color: var(--good); }
+
+        .card-yellow { border-top: 4px solid var(--moderate); }
+        .card-yellow .aqi-circle { background: rgba(234, 179, 8, 0.2); border: 2px solid var(--moderate); box-shadow: 0 0 20px rgba(234, 179, 8, 0.3); color: var(--moderate); }
+        .card-yellow #resultStatus { color: var(--moderate); }
+
+        .card-orange { border-top: 4px solid var(--unhealthy); }
+        .card-orange .aqi-circle { background: rgba(249, 115, 22, 0.2); border: 2px solid var(--unhealthy); box-shadow: 0 0 20px rgba(249, 115, 22, 0.3); color: var(--unhealthy); }
+        .card-orange #resultStatus { color: var(--unhealthy); }
+
+        .card-red { border-top: 4px solid var(--poor); }
+        .card-red .aqi-circle { background: rgba(239, 68, 68, 0.2); border: 2px solid var(--poor); box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); color: var(--poor); }
+        .card-red #resultStatus { color: var(--poor); }
+
+        /* Warning Banner */
+        .warning-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .warning-banner.visible {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .warning-banner i {
+            font-size: 1.2rem;
+            animation: flash 1.5s infinite;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fa-solid fa-wind"></i> NMwebs
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="monitor.html">Monitor</a></li>
+            <li><a href="alert.html" class="active">Alerts</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <header class="page-header">
+            <h1>AQI Alert System</h1>
+            <p>Monitor your city's Air Quality Index and get automatic email notifications when pollution levels become unsafe.</p>
+        </header>
+
+        <div class="alert-grid" id="mainContent">
+            <!-- Left Side: Controls -->
+            <div class="controls-panel">
+                <div class="control-section current-location">
+                    <h3><i class="fa-solid fa-location-arrow"></i> Current Location</h3>
+                    <p>Auto-detect your location and check air quality. Refreshes automatically every 60 seconds.</p>
+                    <button id="btnCurrentLocation" class="btn primary-btn">
+                        <i class="fa-solid fa-location-crosshairs"></i> Use Current Location
+                    </button>
+                </div>
+
+                <div class="control-section search-city">
+                    <h3><i class="fa-solid fa-search"></i> Search City</h3>
+                    <p>Check air quality for any specific city manually.</p>
+                    <div class="search-group">
+                        <input type="text" id="cityInput" placeholder="Enter City Name..." aria-label="Enter City Name">
+                        <button id="btnSearch" class="btn secondary-btn">Check AQI</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Display Result -->
+            <div class="result-panel">
+                <div id="uiWarning" class="warning-banner hidden">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>WARNING: Unsafe AQI levels detected! Email alert triggered.</span>
+                </div>
+
+                <div id="resultCard" class="result-card hidden">
+                    <h2 id="resultCity">Location: --</h2>
+                    <div class="aqi-display">
+                        <div class="aqi-circle" id="aqiCircle">
+                            <span id="resultAqi">--</span>
+                        </div>
+                    </div>
+                    <h3 id="resultStatus">Status: --</h3>
+                    <div class="alert-info">
+                        <small id="lastUpdated">Updated: --</small>
+                    </div>
+                </div>
+                
+                <div id="idleState" class="idle-state">
+                    <i class="fa-solid fa-cloud-sun"></i>
+                    <p>Select your location or search for a city to see the AQI.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Combined JS -->
+    <script>
+        // =========================================================================
+        // AQI ALERT SYSTEM LOGIC
+        // =========================================================================
+
+        // Initialize EmailJS with your public key
+        (function() {
+            // ⚠️ Replace "YOUR_PUBLIC_KEY" with your actual EmailJS public key
+            emailjs.init("YOUR_PUBLIC_KEY"); 
+        })();
+
+        // --- CONFIGURATION & STATE ---
+        const ALERT_API_KEY = '34270ec8c4acaec8ef092c23c68b135d'; // Project API key hardcoded for single file
+        const emailSentHistory = {}; 
+        let refreshInterval = null;
+
+        // --- DOM ELEMENTS ---
+        const btnCurrentLocation = document.getElementById('btnCurrentLocation');
+        const btnSearch = document.getElementById('btnSearch');
+        const cityInput = document.getElementById('cityInput');
+
+        const idleState = document.getElementById('idleState');
+        const resultCard = document.getElementById('resultCard');
+        const resultCity = document.getElementById('resultCity');
+        const resultAqi = document.getElementById('resultAqi');
+        const resultStatus = document.getElementById('resultStatus');
+        const uiWarning = document.getElementById('uiWarning');
+        const lastUpdated = document.getElementById('lastUpdated');
+
+        // --- EVENT LISTENERS ---
+        btnCurrentLocation.addEventListener('click', () => {
+            btnCurrentLocation.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Detecting...`;
+            btnCurrentLocation.disabled = true;
+            getCurrentLocation();
+        });
+
+        btnSearch.addEventListener('click', async () => {
+            const city = cityInput.value.trim();
+            if (!city) {
+                alert("Please enter a valid city name.");
+                return;
+            }
+            
+            btnSearch.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+            btnSearch.disabled = true;
+            
+            try {
+                if (refreshInterval) clearInterval(refreshInterval);
+                
+                const coords = await getCoordinates(city);
+                const aqi = await fetchAQI(coords.lat, coords.lon);
+                
+                displayResult(coords.name, aqi);
+                checkAlert(coords.name, aqi);
+            } catch (err) {
+                alert(err.message || "Failed to fetch AQI for the specified city.");
+            } finally {
+                btnSearch.innerHTML = `Check AQI`;
+                btnSearch.disabled = false;
+            }
+        });
+
+        // =========================================================================
+        // REQUIRED FUNCTIONS IMPLEMENTATION
+        // =========================================================================
+
+        async function getCurrentLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        try {
+                            const city = await getCityFromCoords(lat, lon);
+                            const aqi = await fetchAQI(lat, lon);
+                            
+                            displayResult(city, aqi);
+                            checkAlert(city, aqi);
+                            
+                            if (refreshInterval) clearInterval(refreshInterval);
+                            refreshInterval = setInterval(async () => {
+                                console.log(`Auto-refreshing AQI for ${city}...`);
+                                const newAqi = await fetchAQI(lat, lon);
+                                displayResult(city, newAqi);
+                                checkAlert(city, newAqi);
+                            }, 60000);
+                            
+                        } catch (error) {
+                            alert("Error retrieving air quality data.");
+                            console.error(error);
+                        } finally {
+                            resetLocationBtn();
+                        }
+                    },
+                    (error) => {
+                        alert("Geolocation failed: " + error.message);
+                        resetLocationBtn();
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by this browser.");
+                resetLocationBtn();
+            }
+        }
+
+        function resetLocationBtn() {
+            btnCurrentLocation.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> Use Current Location`;
+            btnCurrentLocation.disabled = false;
+        }
+
+        async function getCityFromCoords(lat, lon) {
+            const url = `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${ALERT_API_KEY}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Network response was not ok");
+            const data = await response.json();
+            return data.length > 0 ? data[0].name : "Unknown Location";
+        }
+
+        async function getCoordinates(city) {
+            const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${ALERT_API_KEY}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("City lookup failed");
+            const data = await response.json();
+            if (data.length === 0) throw new Error("City not found");
+            return { lat: data[0].lat, lon: data[0].lon, name: data[0].name };
+        }
+
+        async function fetchAQI(lat, lon) {
+            const url = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${ALERT_API_KEY}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Failed to fetch AQI data");
+            const data = await response.json();
+            
+            const pm25 = data.list[0].components.pm2_5;
+            return calculateUS_AQI(pm25);
+        }
+
+        function calculateUS_AQI(pm25) {
+            let cLow, cHigh, iLow, iHigh;
+
+            if (pm25 <= 12.0) { cLow = 0.0; cHigh = 12.0; iLow = 0; iHigh = 50; }
+            else if (pm25 <= 35.4) { cLow = 12.1; cHigh = 35.4; iLow = 51; iHigh = 100; }
+            else if (pm25 <= 55.4) { cLow = 35.5; cHigh = 55.4; iLow = 101; iHigh = 150; }
+            else if (pm25 <= 150.4) { cLow = 55.5; cHigh = 150.4; iLow = 151; iHigh = 200; }
+            else if (pm25 <= 250.4) { cLow = 150.5; cHigh = 250.4; iLow = 201; iHigh = 300; }
+            else if (pm25 <= 350.4) { cLow = 250.5; cHigh = 350.4; iLow = 301; iHigh = 400; }
+            else { cLow = 350.5; cHigh = 500.4; iLow = 401; iHigh = 500; }
+
+            const aqi = ((iHigh - iLow) / (cHigh - cLow)) * (pm25 - cLow) + iLow;
+            return Math.round(aqi);
+        }
+
+        function classifyAQI(aqi) {
+            if (aqi <= 50) return { status: "Good", cardClass: "card-green" };
+            if (aqi <= 100) return { status: "Moderate", cardClass: "card-yellow" };
+            if (aqi <= 150) return { status: "Unhealthy", cardClass: "card-orange" };
+            return { status: "Poor", cardClass: "card-red" };
+        }
+
+        function displayResult(city, aqi) {
+            const classification = classifyAQI(aqi);
+            
+            resultCity.textContent = city;
+            resultAqi.textContent = aqi;
+            resultStatus.textContent = classification.status;
+            
+            const now = new Date();
+            lastUpdated.textContent = `Updated: ${now.toLocaleTimeString()}`;
+            
+            resultCard.className = `result-card visible ${classification.cardClass}`;
+            idleState.classList.add('hidden');
+        }
+
+        function checkAlert(city, aqi) {
+            if (aqi > 100) {
+                uiWarning.classList.add('visible');
+                setTimeout(() => alert(`⚠️ ALERT: Unsafe AQI (${aqi}) detected in ${city}. Please take precautions.`), 200);
+                
+                if (canSend(city)) {
+                    sendEmail(city, aqi);
+                    emailSentHistory[city] = Date.now();
+                }
+            } else {
+                uiWarning.classList.remove('visible');
+            }
+        }
+
+        function canSend(city) {
+            const lastSentTime = emailSentHistory[city];
+            if (!lastSentTime) return true; 
+            
+            const ONE_HOUR = 60 * 60 * 1000;
+            return (Date.now() - lastSentTime) >= ONE_HOUR;
+        }
+
+        function sendEmail(city, aqi) {
+            const serviceID = "YOUR_SERVICE_ID";   
+            const templateID = "YOUR_TEMPLATE_ID"; 
+            
+            const templateParams = {
+                city: city,
+                aqi: aqi,
+                message: `Air Quality Alert!\nLocation: ${city}\nAQI Level: ${aqi}\nPlease take precautions.`
+            };
+
+            emailjs.send(serviceID, templateID, templateParams)
+                .then(response => {
+                    console.log("✅ Email alert sent successfully!", response.status, response.text);
+                })
+                .catch(error => {
+                    console.error("❌ Failed to send email alert:", error);
+                });
+        }
+    </script>
+</body>
+</html>

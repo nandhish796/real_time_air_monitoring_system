@@ -20,18 +20,27 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCitiesList();
     startAutoRefresh();
 
-    addCityForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const city = newCityInput.value.trim();
-        if (city) addNewCity(city);
-    });
+    if (addCityForm) {
+        addCityForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const city = newCityInput.value.trim();
+            if (city) addNewCity(city);
+        });
+    }
 });
 
 // ====== LOCAL STORAGE & DATA LOGIC ======
 function loadLocalData() {
     try {
         const data = localStorage.getItem('monitoredCities');
-        if (data) monitoredCities = JSON.parse(data);
+        if (data) Object.assign(monitoredCities, JSON.parse(data));
+        // Simple validate
+        for (let city in monitoredCities) {
+            const arr = monitoredCities[city];
+            if (!Array.isArray(arr) || arr.length === 0 || !arr[0].color) {
+                delete monitoredCities[city]; // remove old / corrupt schemas
+            }
+        }
     } catch (e) {
         monitoredCities = {};
     }
@@ -49,23 +58,35 @@ async function addNewCity(city) {
         newCityInput.value = '';
         return;
     }
-    
+
+    // Indicate loading state
+    const submitBtn = addCityForm.querySelector('button[type="submit"]');
+    const originalIcon = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    submitBtn.disabled = true;
+
     await fetchAndUpdateCity(formattedCity, true);
+    
+    submitBtn.innerHTML = originalIcon;
+    submitBtn.disabled = false;
     newCityInput.value = '';
 }
 
 async function fetchAndUpdateCity(city, isNew = false) {
     try {
         const coordinates = await fetchCoordinates(city);
+        const officialCityName = coordinates.name || city; // Normalizes name dynamically
+        
         const aqiData = await fetchAirQuality(coordinates.lat, coordinates.lon);
         
-        appendCityData(city, aqiData);
+        appendCityData(officialCityName, aqiData);
         if (isNew) {
-            showNotification(`${city} added successfully!`, 'success');
-            activeCity = city; 
+            showNotification(`${officialCityName} added successfully!`, 'success');
+            activeCity = officialCityName; 
         }
     } catch (error) {
-        if (isNew && error.message === 'City not found') {
+        console.error("Error fetching city data: ", error.message);
+        if (isNew && error.message.includes('not found')) {
             showNotification('City not found. Please try another.', 'error');
             return;
         }
@@ -83,23 +104,27 @@ async function fetchAndUpdateCity(city, isNew = false) {
 function appendCityData(city, data) {
     if (!monitoredCities[city]) monitoredCities[city] = [];
     
-    const p = data.components;
-    let simulatedAqi = calculateAQI(p.pm2_5);
+    const p = data.components || { pm2_5:0, pm10:0, co:0, no2:0 };
+    // parseFloat ensures numeric validity over string bounds from simulated backups
+    const pm25Val = parseFloat(p.pm2_5 || p.pm25 || 0); 
+    
+    let simulatedAqi = calculateAQI(pm25Val);
     const aqiConfig = getAqiConfig(simulatedAqi);
     
     const entry = {
         timestamp: new Date().toISOString(),
         aqi: simulatedAqi,
-        pm25: Math.round(p.pm2_5),
-        pm10: Math.round(p.pm10),
-        co: Math.round(p.co),
-        no2: Math.round(p.no2),
-        status: aqiConfig.label,
-        color: aqiConfig.color 
+        pm25: Math.round(pm25Val),
+        pm10: Math.round(parseFloat(p.pm10 || 0)),
+        co: Math.round(parseFloat(p.co || 0)),
+        no2: Math.round(parseFloat(p.no2 || 0)),
+        status: aqiConfig.label || 'Unknown',
+        color: aqiConfig.color || '#94a3b8'
     };
     
     monitoredCities[city].push(entry);
     
+    // Maintain maximum historical depth footprint per city
     if (monitoredCities[city].length > 30) monitoredCities[city].shift();
 }
 
@@ -113,19 +138,20 @@ function renderCitiesList() {
         emptyStateEl.style.display = 'flex';
         aqiChartCanvas.style.display = 'none';
         chartTitleEl.textContent = 'Historical AQI Trends';
-        chartSubtitleEl.textContent = 'Add a city to view its trends';
+        chartSubtitleEl.innerHTML = 'Add a city to start monitoring its air quality trends.';
         return;
     }
     
     cityNames.sort();
     
+    // Select first city automatically on initial bootup rendering
     if (!activeCity && cityNames.length > 0) {
         activeCity = cityNames[0];
-        renderChart(activeCity);
     }
     
     cityNames.forEach(city => {
         const history = monitoredCities[city];
+        if (!history || history.length === 0) return;
         const latest = history[history.length - 1];
         
         const cityItem = document.createElement('div');
@@ -154,16 +180,23 @@ function renderCitiesList() {
         });
         
         const removeBtn = cityItem.querySelector('.remove-city-btn');
-        removeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            removeCity(city);
-        });
+        if (removeBtn) {
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeCity(city);
+            });
+        }
         
         citiesListEl.appendChild(cityItem);
     });
+
+    if (activeCity) {
+        renderChart(activeCity);
+    }
 }
 
 function removeCity(city) {
+    if (!city) return;
     delete monitoredCities[city];
     saveLocalData();
     showNotification(`${city} removed.`, 'success');
@@ -201,9 +234,9 @@ function renderChart(city) {
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     });
     
-    const aqiData = history.map(entry => entry.aqi);
-    const lineColors = history.map(entry => entry.color);
-    const mainColor = history[history.length - 1].color;
+    const aqiData = history.map(entry => entry.aqi || 0);
+    const lineColors = history.map(entry => entry.color || '#94a3b8');
+    const mainColor = lineColors[lineColors.length - 1];
     
     if (aqiChartInstance) aqiChartInstance.destroy();
     
